@@ -12,7 +12,7 @@ extern char token_text[MAXLEN];//存放自身单词值
 //extern char string_num[20];
 extern int cnt_lines;
 int w,type;//全局变量，存放当前读入的单词种类编码
-bool mistake = false;//全局变量，有任何一个未知出错都会导致其值变为1
+bool mistake = false /* 全局，出错为true */, in_recycle = false /* 在循环体内时为true */;
 extern FILE* fp;
 VNL head;//变量名链表根节点，head为空
 
@@ -654,7 +654,7 @@ AST* Statement()
         return state;
     }
     case WHILE:{
-        bool in_recycle = true;
+        in_recycle = true;
         memset(token_text, 0, sizeof(token_text));
         w = gettoken(fp);
         while(w == ANNO || w == INCLUDE)
@@ -711,7 +711,87 @@ AST* Statement()
         return state;
     }
     case FOR:{
-        break;
+        in_recycle = true;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        if(w != LP){
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：for语句出错\n");
+            mistake = true;
+            return NULL;
+        }
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        AST *for_part = (AST *)malloc(sizeof(AST)); // 条件句
+        for_part->data.data = NULL;
+        for_part->type = FORPART;
+        AST *for_1 = (AST *)malloc(sizeof(AST)); // 第一部分
+        AST *for_2 = (AST *)malloc(sizeof(AST)); // 第二部分
+        AST *for_3 = (AST *)malloc(sizeof(AST)); // 第三部分
+        for_part -> l = for_1;
+        for_1->type = FORPART1;
+        for_1->data.data = NULL;
+        for_1->l = Expression(SEMI);
+        if(for_1->l == NULL) {
+            for_1->data.data = (char*)malloc(MAXLEN*sizeof(char));
+            strcpy(for_1->data.data, "无");
+        }
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        for_1 -> r = for_2;
+        for_2->type = FORPART2;
+        for_2->data.data = NULL;
+        for_2->l = Expression(SEMI);
+        if(for_2->l == NULL) {
+            for_2->data.data = (char*)malloc(MAXLEN*sizeof(char));
+            strcpy(for_2->data.data, "无");
+        }
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        for_2 -> r = for_3;
+        for_3->type = FORPART3;
+        for_3->data.data = NULL;
+        for_3->l = Expression(RP); // 第三部分以')'结束
+        if(for_3->l == NULL) {
+            for_3->data.data = (char*)malloc(MAXLEN*sizeof(char));
+            strcpy(for_3->data.data, "无");
+        }
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        AST* for_body = (AST*)malloc(sizeof(AST));
+        for_body->type = FORBODY;
+        for_body->r = NULL;
+        for_body->l = NULL;
+        for_body->data.data = NULL;
+        if(w == LB){
+            memset(token_text, 0, sizeof(token_text));
+            w = gettoken(fp);
+            while(w == ANNO || w == INCLUDE)
+                w = gettoken(fp);
+            for_body->r = StatementList();
+        }else if(w >= IDENT && w <= KEYWORD){
+            for_body->r = Statement();
+        }else{
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：for循环体出错\n");
+            mistake = true;
+            return NULL;
+        }
+        state->type = FORSTATEMENT;
+        state->l = for_part;
+        state->r = for_part;
+        in_recycle = false;
+        return state;
     }
     case RETURN:{
         break;
