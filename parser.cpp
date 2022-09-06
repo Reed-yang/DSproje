@@ -827,7 +827,26 @@ AST* Statement()
         return state;
     }
     case CONTINUE:{
-        break;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while (w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        if (w != SEMI)
+        {
+            printf("第%d行出现错误\n", cnt_lines);
+            printf("错误：continue语句缺少分号\n");
+            mistake = true;
+            return NULL;
+        }
+        if (in_recycle == false)
+        {
+            printf("第%d行出现错误\n", cnt_lines);
+            printf("错误：非循环语句中出现了continue语句\n");
+            mistake = true;
+            return NULL;
+        }
+        state->type = CONTINUESTATEMENT;
+        return state;
     }
     case INT_CONST:
     case FLOAT_CONST:
@@ -1034,7 +1053,7 @@ AST* Expression(int end_sign)
 /* 数组定义 */
 AST* ArrayDef()
 {
-
+    return NULL;
 }
 
 /* 退回多读取的单词 */
@@ -1052,7 +1071,7 @@ void returntoken(FILE *fp)
 char precede(int c1, int c2)
 {
     if(mistake)
-        return NULL;
+        return '\0' ;
     if(c1==PLUS||c1==MINUS){
         switch (c2){
             case PLUS:
