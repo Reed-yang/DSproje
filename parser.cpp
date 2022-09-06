@@ -654,7 +654,61 @@ AST* Statement()
         return state;
     }
     case WHILE:{
-        break;
+        bool in_recycle = true;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        if(w != LP)
+        {
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：while语句出错\n");
+            mistake=1;
+            return NULL;
+        }
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        AST* while_part = (AST* )malloc(sizeof(AST));
+        while_part->data.data = NULL;
+        while_part->type = WHILEPART;
+        while_part->r = NULL;
+        while_part->l = Expression(RP); // 处理条件表达式
+        if(while_part->l == NULL){
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：while语句条件部分出错\n");
+            mistake = true;
+            return NULL;
+        }
+        AST* while_body = (AST*)malloc(sizeof(AST));
+        while_body->data.data = NULL;
+        while_body->type = WHILEBODY;
+        while_body->l = NULL;
+        while_body->r = NULL;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while(w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        if(w == LB){
+            memset(token_text, 0, sizeof(token_text));
+            w = gettoken(fp);
+            while(w == ANNO || w == INCLUDE)
+                w = gettoken(fp);
+            while_body->r = StatementList();
+        }else if( w >= IDENT && w <= KEYWORD){
+            while_body->r = Statement();
+        }else{
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：while语句出错\n");
+            mistake = true;
+            return NULL;
+        }
+        state->type = WHILESTATEMENT;
+        state->l = while_part;
+        state->r = while_body;
+        in_recycle = false;
+        return state;
     }
     case FOR:{
         break;
