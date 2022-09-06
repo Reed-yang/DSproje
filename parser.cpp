@@ -789,7 +789,7 @@ AST* Statement()
         }
         state->type = FORSTATEMENT;
         state->l = for_part;
-        state->r = for_part;
+        state->r = for_body;
         in_recycle = false;
         return state;
     }
@@ -805,7 +805,26 @@ AST* Statement()
         return state;
     }
     case BREAK:{
-        break;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while (w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        if (w != SEMI)
+        {
+            printf("第%d行出现错误\n", cnt_lines);
+            printf("错误：break语句缺少分号\n");
+            mistake = true;
+            return NULL;
+        }
+        if (in_recycle == false)
+        {
+            printf("第%d行出现错误\n", cnt_lines);
+            printf("错误：非循环语句中出现了break语句\n");
+            mistake = true;
+            return NULL;
+        }
+        state->type = BREAKSTATEMENT;
+        return state;
     }
     case CONTINUE:{
         break;
@@ -1415,7 +1434,7 @@ void showType(int type)
             printf("for语句条件三\n");
             break;
         case 35:
-            printf("for语句体\n");
+            printf("for循环体\n");
             break;
         case 36:
             printf("return语句\n");
