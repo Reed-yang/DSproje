@@ -1,0 +1,7 @@
+//int ext(int first);
+int fun(int second){
+    int a, b;
+    if(a == b){
+        a = 1;
+    }
+}
