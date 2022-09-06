@@ -554,8 +554,9 @@ AST* StatementList()
             state_list->r = StatementList();
             return state_list;
         }
-        
     }
+    mistake = true;
+    return NULL;
 }
 
 /* 语句 */
@@ -1272,6 +1273,8 @@ char precede(int c1, int c2)
                 return '\0';
         }
     }
+    mistake = true;
+    return '\0';
 }
 
 /* 将变量名添加至VNL中, 返回0为添加成功, 返回1出错 */
