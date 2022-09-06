@@ -605,7 +605,12 @@ AST* Statement()
             if_part->r = StatementList();
         }else if(w >= IDENT && w <= KEYWORD){
             // if后无语句序列，只跟一条语句
-            if_part->r = Statement
+            if_part->r = Statement();
+        }else{
+            mistake = true;
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：if语句体出错\n");
+            return NULL;
         }
         state->l = if_part;
         memset(token_text, 0, sizeof(token_text));
