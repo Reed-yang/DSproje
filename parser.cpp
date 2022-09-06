@@ -794,10 +794,15 @@ AST* Statement()
         return state;
     }
     case RETURN:{
-        break;
-    }
-    case DO:{
-        break;
+        state->type=RETURNSTATEMENT;
+        state->l = NULL;
+        state->r = NULL;
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+        while (w == ANNO || w == INCLUDE)
+            w = gettoken(fp);
+        state->r = Expression(SEMI);
+        return state;
     }
     case BREAK:{
         break;
@@ -967,11 +972,12 @@ AST* Expression(int end_sign)
                     w = gettoken(fp);
                 break;
             }
-            case '\0':
+            case '\0':{
                 printf("第%d行出现警告\n",cnt_lines);
                 printf("警告：出现未知运算符\n");
                 mistake = true;
                 exit(0);
+            }
             default:
                 if(w == end_sign)
                     w = POUND;
