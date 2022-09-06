@@ -600,13 +600,12 @@ AST* Statement()
             // if语句大括号内可以有多条语句{...state...}
             memset(token_text, 0, sizeof(token_text));
             w = gettoken(fp);
-            while(w==ANNO||w==INCLUDE)
+            while(w == ANNO || w == INCLUDE)
                 w=gettoken(fp);
             if_part->r = StatementList();
-        }else{
-            // if语句后也可不跟大括号，只跟一条语句
-            ToBeContinue
-            //
+        }else if(w >= IDENT && w <= KEYWORD){
+            // if后无语句序列，只跟一条语句
+            if_part->r = Statement
         }
         state->l = if_part;
         memset(token_text, 0, sizeof(token_text));
@@ -616,17 +615,56 @@ AST* Statement()
         if(w == ELSE)
         {
             state->type = IFELSESTATEMENT;
+            AST* else_part = (AST* )malloc(sizeof(AST));
+            else_part->l = NULL;
+            else_part->data.data = NULL;
+            else_part->type = ELSEPART;
+            state->r = else_part;
+            memset(token_text, 0, sizeof(token_text));
+            w = gettoken(fp);
+            while (w == ANNO || w == INCLUDE)
+                w = gettoken(fp);
+            if( w == LB){
+                memset(token_text, 0, sizeof(token_text));
+                w = gettoken(fp);
+                while (w == ANNO || w == INCLUDE)
+                    w = gettoken(fp);
+                else_part->r = StatementList();
+            }else if(w >= IDENT && w <= KEYWORD){
+                // 无大括号时，只跟一条语句
+                else_part->r = Statement();
+            }else if(w == IF){
+                else_part->l = Statement();
+            }else{
+                printf("第%d行出现错误\n",cnt_lines);
+                printf("错误：else子句出错\n");
+                mistake = true;
+                return NULL;
+            }
         }else{
             state->type = IFSTATEMENT;
-            if(w == RB){
-                ungetc('}', fp);
-            }
+            // 此处为了判断是否跟else多读了一个单词,若不是else应把该单词退回
+            returntoken(fp);
         }
-        // 
-        ToBeContinue
-        // 
-
         return state;
+    }
+    case WHILE:{
+        break;
+    }
+    case FOR:{
+        break;
+    }
+    case RETURN:{
+        break;
+    }
+    case DO:{
+        break;
+    }
+    case BREAK:{
+        break;
+    }
+    case CONTINUE:{
+        break;
     }
     case INT_CONST:
     case FLOAT_CONST:
@@ -804,6 +842,17 @@ AST* Expression(int end_sign)
 AST* ArrayDef()
 {
 
+}
+
+/* 退回多读取的单词 */
+void returntoken(FILE *fp)
+{
+    int digit = strlen(token_text);
+    int i;
+    for (i = 0; i < digit; i++)
+    {
+        ungetc(token_text[digit - 1 - i], fp);
+    }
 }
 
 /* 比较优先级函数 */

@@ -3,5 +3,6 @@ int fun(int second){
     int a, b;
     if(a == b){
         a = 1;
-    }
+    }else
+        a = "hello, world!";
 }
