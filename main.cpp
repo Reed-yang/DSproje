@@ -1,5 +1,7 @@
 #include "lexer.h"
 #include "parser.h"
+#include "format.h"
+
 
 void openfile(FILE *(*fp), char filename[30]); //打开一个源码文件
 
@@ -43,6 +45,9 @@ int main()
         case 4:
         {
             openfile(&fp, filename);
+            printf("已经进入格式化！\n");
+            format();
+            getchar();getchar();
             break;
         }
         default:
