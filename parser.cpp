@@ -921,28 +921,57 @@ AST* Expression(int end_sign)
             }
             case '>':{
                 AST* t1, *t2, *t;
-                if(!(t2 = opn.top()))
+                t2 = opn.top();
+                if (!t2 && (op.top()->data.type) != PLUSPLUS && (op.top()->data.type) != MINUSMINUS)
+                {
                     error++;
-                opn.pop();
-                if(!(t1 = opn.top()))
+                    break;
+                }
+                if (t2 != NULL)
+                    opn.pop();
+                if (opn.size() == 0)
+                {
+                    t1 = NULL;
+                }
+                else
+                {
+                    t1 = opn.top();
+                }
+                if (!t1 && (op.top()->data.type) != PLUSPLUS && (op.top()->data.type) != MINUSMINUS)
+                {
                     error++;
-                opn.pop();
+                    break;
+                }
+                if (t1 != NULL)
+                    opn.pop();
                 t = op.top();
+                if (!t)
+                {
+                    error++;
+                    break;
+                }
+                op.pop();
                 t->l = t1;
                 t->r = t2;
                 opn.push(t);
 
-                p = (AST*)malloc(sizeof(AST));
+                p = (AST *)malloc(sizeof(AST));
                 p->data.data = (char*)malloc(MAXLEN*sizeof(char));
                 strcpy(p->data.data, token_text);
+                p->type = OPERATOR;
                 p->data.type = w;
                 op.push(p);
-
+                memset(token_text, 0, sizeof(token_text));
                 w = gettoken(fp);
                 while (w == ANNO || w == INCLUDE)
                     w = gettoken(fp);
                 break;
             }
+            case '\0':
+                printf("第%d行出现警告\n",cnt_lines);
+                printf("警告：出现未知运算符\n");
+                mistake = true;
+                exit(0);
             default:
                 if(w == end_sign)
                     w = POUND;
