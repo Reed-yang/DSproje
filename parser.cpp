@@ -77,7 +77,7 @@ AST* ExtDef()
     AST *root_def;
     //root->data.data = NULL;
     w = gettoken(fp);
-    while (w == ANNO || w == INCLUDE)
+    while (w == ANNO || w == INCLUDE||w==MACRO)
         w = gettoken(fp);
     strcpy(token_text,token_text0);/* 已读取下一token, 重新载入之前的text */
     if (w == LP)
@@ -199,7 +199,7 @@ AST* ExtVarDef()
         strcpy(token_text1, token_text);
         var_name->data.data = token_text1;
         w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
+        while(w == ANNO || w == INCLUDE||w==MACRO)
             w = gettoken(fp);
     }
 }
@@ -253,7 +253,7 @@ AST* FuncDef()
     func_name->l = FormParaList();//func_name左子树是形参序列
     // 判断函数定义的类型：函数原型/函数体
     w = gettoken(fp);
-    while (w==ANNO||w==INCLUDE)
+    while (w==ANNO||w==INCLUDE||w==MACRO)
         w = gettoken(fp);
     if(w == SEMI){
         // 函数原型声明
@@ -277,7 +277,7 @@ void readtoken()
 {
     memset(token_text, 0, sizeof(token_text));
     w = gettoken(fp);
-    while(w == INCLUDE || w == ANNO){
+    while(w == INCLUDE || w == ANNO || w == MACRO){
         memset(token_text, 0, sizeof(token_text));
         w = gettoken(fp);
     }
@@ -298,7 +298,7 @@ AST* FormParaList()
     if (w == COMMA)
     {// 递归调用时若是COMMA可以继续读取下一参数
         w = gettoken(fp);
-        while (w == ANNO || w == INCLUDE)
+        while (w == ANNO || w == INCLUDE||w==MACRO)
             w = gettoken(fp);
     }
     AST* form_para_list = (AST*)malloc(sizeof(AST));
@@ -459,7 +459,7 @@ AST* LocalVarDefList()
     {
         // 递归生成局部变量定义序列
         w = gettoken(fp);
-        while(w==ANNO||w==INCLUDE)
+        while(w==ANNO||w==INCLUDE||w==MACRO)
             w = gettoken(fp);
         if(w == SEMI){
             // 遇分号，局部变量定义结束
@@ -521,7 +521,7 @@ AST* StatementList()
         readtoken();
         if(/* w == EndOfFile || */ w == RB){
             // 应该在函数的大括号结束时return state_list
-            ToBeContinue
+            // ToBeContinue
             //
             return state_list;
         }else if(w != RB)
@@ -548,7 +548,7 @@ AST* Statement()
     {
     case IF:{
         w = gettoken(fp);
-        while (w == INCLUDE || w == ANNO)
+        while (w == INCLUDE || w == ANNO||w==MACRO)
             w = gettoken(fp);
         if(w != LP){
             mistake = true;
@@ -568,7 +568,7 @@ AST* Statement()
             return NULL;
         }
         w = gettoken(fp);
-        while (w == INCLUDE || w == ANNO)
+        while (w == INCLUDE || w == ANNO||w==MACRO)
             w = gettoken(fp);
         if(w == LB){
             // if语句大括号内可以有多条语句{...state...}
@@ -877,7 +877,7 @@ AST* Expression(int end_sign)
                     op.pop();
                 }
                 w = gettoken(fp);
-                while (w == ANNO || w == INCLUDE)
+                while (w == ANNO || w == INCLUDE||w==MACRO)
                     w = gettoken(fp);
                 break;
             }
