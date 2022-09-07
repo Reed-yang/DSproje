@@ -2,4 +2,4 @@
 .vscode/
 
 main
-exp
+*exp*
