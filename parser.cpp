@@ -20,11 +20,7 @@ VNL head;//变量名链表根节点，head为空
 AST* program()
 {
     printf("Enter program!\n");
-    w = gettoken(fp);
-    while(w == INCLUDE || w == ANNO){
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-    }
+    readtoken();
     AST *p = ExtDefList();
     if( p ){
         // 程序语法正确，返回的语法树根结点指针，可遍历显示
@@ -49,10 +45,7 @@ AST* ExtDefList()
     root->data.data=NULL;
     root->type = EXTDEFLIST;
     root->l = ExtDef();
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while(w == INCLUDE || w == ANNO)
-        w = gettoken(fp);
+    readtoken();
     root->r = ExtDefList();
     return root;
 }
@@ -71,10 +64,7 @@ AST* ExtDef()
         return NULL;
     }
     type = w;/* 保存类型说明符至type */
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while (w == ANNO || w == INCLUDE) /* 跳过注释 */
-        w = gettoken(fp);
+    readtoken();
     if(w != IDENT && w != ARRAY ){
         printf("第%d行出现错误\n",cnt_lines);
         printf("错误：外部定义出错\n");
@@ -180,8 +170,7 @@ AST* ExtVarDef()
             return def;
         }
         /* w为COMMA的情形，继续读取变量 */
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
+        readtoken();
         if(w != IDENT){
             printf("第%d行出现错误\n",cnt_lines);
             printf("错误：外部变量定义处出错\n");
@@ -283,9 +272,17 @@ AST* FuncDef()
     return func_def;
 }
 
-/* 类型说明符 */
+/* 读取一个单词，并清空token_text原有的内容/自动跳过注释 */
+void readtoken()
+{
+    memset(token_text, 0, sizeof(token_text));
+    w = gettoken(fp);
+    while(w == INCLUDE || w == ANNO){
+        memset(token_text, 0, sizeof(token_text));
+        w = gettoken(fp);
+    }
+}
 
-/* 变量序列 */
 
 /* 形式参数序列 */
 AST* FormParaList()
@@ -293,10 +290,7 @@ AST* FormParaList()
     // 进入函数前，已经读取了左括号(
     if(mistake)
         return NULL;
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while (w == ANNO || w == INCLUDE)
-        w = gettoken(fp);
+    readtoken();
     if (w == RP)
     {
         return NULL;
@@ -329,10 +323,7 @@ AST* FormParaDef()
         return NULL;
     }
     type = w;/* 保存类型说明符至type */
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while (w == ANNO || w == INCLUDE) /* 跳过注释 */
-        w = gettoken(fp);
+    readtoken();
     if(w != IDENT && w != ARRAY ){
         printf("第%d行出现错误\n",cnt_lines);
         printf("错误：形参定义出错\n");
@@ -397,10 +388,7 @@ AST* ComStatement()
     com_statement->data.data = NULL;
     com_statement->l =NULL;
     com_statement->r =NULL;
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while(w==ANNO||w==INCLUDE)
-        w = gettoken(fp);
+    readtoken();
     if(w >= INT && w <= DOUBLE){
         com_statement->l = LocalVarDefList();
     }else{
@@ -461,10 +449,7 @@ AST* LocalVarDefList()
     local_varname->data.data = (char*)malloc(MAXLEN*sizeof(char));
     local_varname->l = NULL;
     local_varname->r = NULL;
-    memset(token_text, 0, sizeof(token_text));
-    w = gettoken(fp);
-    while(w==ANNO||w==INCLUDE)
-        w = gettoken(fp);
+    readtoken();
     strcpy(local_varname->data.data, token_text);
     if(add2VNL(token_text)){
         mistake = true;
@@ -479,10 +464,7 @@ AST* LocalVarDefList()
         if(w == SEMI){
             // 遇分号，局部变量定义结束
             local_varnamelist->r = NULL;
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w==ANNO||w==INCLUDE)
-                w = gettoken(fp);
+            readtoken();
             break;
         }else if(w == COMMA)
         {
@@ -498,10 +480,7 @@ AST* LocalVarDefList()
             local_varnamelist->l->l = NULL;
             local_varnamelist->l->r = NULL;
             local_varnamelist->l->type = LOCALVARNAME;
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w==ANNO||w==INCLUDE)
-                w = gettoken(fp);
+            readtoken();
             if(add2VNL(token_text)){
                 mistake = true;
                 return NULL;
@@ -539,10 +518,7 @@ AST* StatementList()
         state_list->type = STATELIST;
         state_list->l = state;
         state_list->r = NULL;
-        memset(token_text , 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if(/* w == EndOfFile || */ w == RB){
             // 应该在函数的大括号结束时return state_list
             ToBeContinue
@@ -580,10 +556,7 @@ AST* Statement()
             printf("错误：if语句语法出错\n");
             return NULL;
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while (w == INCLUDE || w == ANNO)
-            w = gettoken(fp);
+        readtoken();
         AST *if_part = (AST*)malloc(sizeof(AST));
         if_part->data.data = NULL;
         if_part->type = IFPART;
@@ -599,10 +572,7 @@ AST* Statement()
             w = gettoken(fp);
         if(w == LB){
             // if语句大括号内可以有多条语句{...state...}
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w == ANNO || w == INCLUDE)
-                w=gettoken(fp);
+            readtoken();
             if_part->r = StatementList();
         }else if(w >= IDENT && w <= KEYWORD){
             // if后无语句序列，只跟一条语句
@@ -614,10 +584,7 @@ AST* Statement()
             return NULL;
         }
         state->l = if_part;
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if(w == ELSE)
         {
             state->type = IFELSESTATEMENT;
@@ -626,15 +593,9 @@ AST* Statement()
             else_part->data.data = NULL;
             else_part->type = ELSEPART;
             state->r = else_part;
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while (w == ANNO || w == INCLUDE)
-                w = gettoken(fp);
+            readtoken();
             if( w == LB){
-                memset(token_text, 0, sizeof(token_text));
-                w = gettoken(fp);
-                while (w == ANNO || w == INCLUDE)
-                    w = gettoken(fp);
+                readtoken();
                 else_part->r = StatementList();
             }else if(w >= IDENT && w <= KEYWORD){
                 // 无大括号时，只跟一条语句
@@ -656,10 +617,7 @@ AST* Statement()
     }
     case WHILE:{
         in_recycle = true;
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if(w != LP)
         {
             printf("第%d行出现错误\n",cnt_lines);
@@ -667,10 +625,7 @@ AST* Statement()
             mistake=1;
             return NULL;
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         AST* while_part = (AST* )malloc(sizeof(AST));
         while_part->data.data = NULL;
         while_part->type = WHILEPART;
@@ -687,15 +642,9 @@ AST* Statement()
         while_body->type = WHILEBODY;
         while_body->l = NULL;
         while_body->r = NULL;
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if(w == LB){
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w == ANNO || w == INCLUDE)
-                w = gettoken(fp);
+            readtoken();
             while_body->r = StatementList();
         }else if( w >= IDENT && w <= KEYWORD){
             while_body->r = Statement();
@@ -713,20 +662,14 @@ AST* Statement()
     }
     case FOR:{
         in_recycle = true;
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if(w != LP){
             printf("第%d行出现错误\n",cnt_lines);
             printf("错误：for语句出错\n");
             mistake = true;
             return NULL;
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         AST *for_part = (AST *)malloc(sizeof(AST)); // 条件句
         for_part->data.data = NULL;
         for_part->type = FORPART;
@@ -741,10 +684,7 @@ AST* Statement()
             for_1->data.data = (char*)malloc(MAXLEN*sizeof(char));
             strcpy(for_1->data.data, "无");
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         for_1 -> r = for_2;
         for_2->type = FORPART2;
         for_2->data.data = NULL;
@@ -753,10 +693,7 @@ AST* Statement()
             for_2->data.data = (char*)malloc(MAXLEN*sizeof(char));
             strcpy(for_2->data.data, "无");
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         for_2 -> r = for_3;
         for_3->type = FORPART3;
         for_3->data.data = NULL;
@@ -765,20 +702,14 @@ AST* Statement()
             for_3->data.data = (char*)malloc(MAXLEN*sizeof(char));
             strcpy(for_3->data.data, "无");
         }
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while(w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         AST* for_body = (AST*)malloc(sizeof(AST));
         for_body->type = FORBODY;
         for_body->r = NULL;
         for_body->l = NULL;
         for_body->data.data = NULL;
         if(w == LB){
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w == ANNO || w == INCLUDE)
-                w = gettoken(fp);
+            readtoken();
             for_body->r = StatementList();
         }else if(w >= IDENT && w <= KEYWORD){
             for_body->r = Statement();
@@ -798,18 +729,12 @@ AST* Statement()
         state->type=RETURNSTATEMENT;
         state->l = NULL;
         state->r = NULL;
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while (w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         state->r = Expression(SEMI);
         return state;
     }
     case BREAK:{
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while (w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if (w != SEMI)
         {
             printf("第%d行出现错误\n", cnt_lines);
@@ -828,10 +753,7 @@ AST* Statement()
         return state;
     }
     case CONTINUE:{
-        memset(token_text, 0, sizeof(token_text));
-        w = gettoken(fp);
-        while (w == ANNO || w == INCLUDE)
-            w = gettoken(fp);
+        readtoken();
         if (w != SEMI)
         {
             printf("第%d行出现错误\n", cnt_lines);
@@ -864,6 +786,8 @@ AST* Expression(int end_sign)
 {
     if(mistake)
         return NULL;
+    if(w == end_sign)
+        return NULL;
     // 针对for循环可能会出现语句为空的情况
     int error = 0;
     stack<AST*> op; // operator 运算符栈
@@ -892,10 +816,7 @@ AST* Expression(int end_sign)
             strcpy(p->data.data, token_text);
             p->type = OPERAND;
             opn.push(p);
-            memset(token_text, 0, sizeof(token_text));
-            w = gettoken(fp);
-            while(w == ANNO || w == INCLUDE)
-                w = gettoken(fp);
+            readtoken();
         }else if(w == end_sign)
         {
             AST* p=(AST*)malloc(sizeof(AST)), *t2, *t1, *t;//定义起止符号结点
@@ -946,10 +867,7 @@ AST* Expression(int end_sign)
                 p->type = OPERATOR;
                 p->data.type = w;
                 op.push(p);
-                memset(token_text, 0, sizeof(token_text));
-                w = gettoken(fp);
-                while (w == ANNO || w == INCLUDE)
-                    w = gettoken(fp);
+                readtoken();
                 break;
             }
             case '=':{ // 去括号
@@ -1005,10 +923,7 @@ AST* Expression(int end_sign)
                 p->type = OPERATOR;
                 p->data.type = w;
                 op.push(p);
-                memset(token_text, 0, sizeof(token_text));
-                w = gettoken(fp);
-                while (w == ANNO || w == INCLUDE)
-                    w = gettoken(fp);
+                readtoken();
                 break;
             }
             case '\0':{
@@ -1335,12 +1250,12 @@ void PreorderTranverse(AST* root,int depth)
     else{
         int i;//控制缩进
         for(i=0;i<depth;i++){
-            printf("\t");
+            printf("     ");
         }
         showType(root->type);
         if(root->data.data!=NULL){
             for(i=0;i<depth;i++){
-                printf("\t");
+                printf("     ");
             }
             printf("%s\n",root->data.data);
         }

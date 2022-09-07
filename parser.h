@@ -82,6 +82,7 @@ AST* Expression(int end_sign);
 AST* Statement();
 AST* FormParaDef();
 AST* LocalVarDefList();
+void readtoken();
 void returntoken(FILE *fp);
 char precede(int c1, int c2);
 int add2VNL(char token_text[MAXLEN]);
