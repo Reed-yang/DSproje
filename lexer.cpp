@@ -158,8 +158,10 @@ int gettoken(FILE *fp)
         else if (c == '.')
         {
             c = fgetc(fp);
-            if (c == 'f')
+            if ( (c == 'f') || (c == 'F') )
             {
+                add_text(token_text, '.');
+                add_text(token_text, c);
                 return FLOAT_CONST;
             }else if(!isNum(c)){
                 return ERROR_TOKEN;
@@ -175,16 +177,34 @@ int gettoken(FILE *fp)
                 {
                     add_text(token_text, c);
                 } while (isNum(c = fgetc(fp)));
-                if (c == 'f')
+                if ( (c == 'f') || (c == 'F') )
                 {
                     add_text(token_text, c);
                     return FLOAT_CONST;
                 }//e.g. 1.23f
-                else
-                {
+                else if( (c == 'e') || (c == 'E') ){
+                    do{
+                        add_text(token_text, c);
+                    } while (isNum(c = fgetc(fp)));
+                    if( (c == 'l') || (c == 'L') ){
+                        add_text(token_text, c);
+                        return FLOAT_CONST;
+                    } // e.g. 11.67e2L
+                    else if (c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/' && c != '\t')
+                    {
+                        return ERROR_TOKEN;
+                    }
                     ungetc(c, fp);
+                    return FLOAT_CONST;
+                }
+                else if(c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/' && c != '\t')
+                {
+                    return ERROR_TOKEN;
+                }else{
+                    ungetc(c, fp);
+                    return FLOAT_CONST;
                 }//e.g. 1.23
-                return FLOAT_CONST;
+                
             }
         }
         else if (c == 'u')
@@ -229,8 +249,43 @@ int gettoken(FILE *fp)
         {
             add_text(token_text, c);
         } while (isNum(c = fgetc(fp)));
-        ungetc(c, fp);
-        return FLOAT_CONST;
+        if ( (c == 'f') || (c == 'F') )
+        {
+            add_text(token_text, c);
+            return FLOAT_CONST;
+        }//e.g. 1.23f
+        else if( (c == 'e') || (c == 'E') ){
+            do{
+                add_text(token_text, c);
+            } while (isNum(c = fgetc(fp)));
+            if( (c == 'l') || (c == 'L') ){
+                add_text(token_text, c);
+                return FLOAT_CONST;
+            } // e.g. 11.67e2L
+            else if (c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/' && c != '\t')
+            {
+                return ERROR_TOKEN;
+            }
+            ungetc(c, fp);
+            return FLOAT_CONST;
+        }
+        else if((c == 'l') || (c == 'L')){
+            add_text(token_text, c);
+            c = fgetc(fp);
+            if (c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/' && c != '\t')
+            {
+                return ERROR_TOKEN;
+            }
+            ungetc(c, fp);
+            return FLOAT_CONST;
+        }
+        else if(c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/' && c != '\t')
+        {
+            return ERROR_TOKEN;
+        }else{
+            ungetc(c, fp);
+            return FLOAT_CONST;
+        }//e.g. .23
     }
 /*识别头文件引用和宏定义*/
     if (c == '#')
@@ -537,7 +592,29 @@ int gettoken(FILE *fp)
                 ungetc(c,fp);
                 return LESS;
             }
+        case '%':
+            add_text(token_text,c);
+            return MOD;
+        case '&':
+            add_text(token_text,c);
+            if((c=fgetc(fp)) == '&'){
+                add_text(token_text,c);
+                return AND;
+            } else{
+                ungetc(c,fp);
+                return BIT_AND;
+            }
+        case '|':
+            add_text(token_text,c);
+            if((c=fgetc(fp)) == '|'){
+                add_text(token_text,c);
+                return OR;
+            } else{
+                ungetc(c,fp);
+                return BIT_OR;
+            }
     }
+
 /* EOF */
     if(c == EOF)
         return EndOfFile;
@@ -704,6 +781,21 @@ int word_analyse(FILE *fp) {
                     break;
                 case MINUS:
                     printf("     减法");
+                    break;
+                case MOD:
+                    printf("     取模");
+                    break;
+                case AND:
+                    printf("   逻辑与");
+                    break;
+                case OR:
+                    printf("   逻辑或");
+                    break;
+                case BIT_AND:
+                    printf("   按位与");
+                    break;
+                case BIT_OR:
+                    printf("   按位或");
                     break;
                 case MINUSMINUS:
                     printf("  自减运算");

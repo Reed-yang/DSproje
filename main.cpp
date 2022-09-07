@@ -18,7 +18,6 @@ int main()
         printf("1. 词法分析\n");
         printf("2. 语法分析\n");
         printf("3. 格式化源文件\n");
-        //printf("4. 重新选择文件\n");
         printf("0. 退出程序\n");
         printf("\n");
         printf("请进行选择：");

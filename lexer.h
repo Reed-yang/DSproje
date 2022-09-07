@@ -63,6 +63,11 @@ enum token_kind
     MOREEQUAL,//大于等于
     LESSEQUAL,//小于等于
     MINUS,//减法
+    MOD, // 取模运算
+    AND, // 逻辑 与 &&
+    OR, // 逻辑 或 ||
+    BIT_AND, // 按位 与 &
+    BIT_OR, // 按位 或 |
     MINUSMINUS,//自减运算
     ANNO,//注释
     INCLUDE,//头文件引用
