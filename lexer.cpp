@@ -146,6 +146,13 @@ int gettoken(FILE *fp)
         {
             add_text(token_text, c);
         } while (isNum(c = fgetc(fp)));
+        if((token_text[0] == '0') && ((c == 'x') || (c == 'X'))){
+            do
+            {
+                add_text(token_text, c);
+            } while (isXnum(c = fgetc(fp)));
+            return INT_CONST; // 16进制整形常量
+        }
         if (c != '.' && c != 'u' && c != 'l')
         {
             if (c != ' ' && c != ';' && c != ')' && c != '+' && c != '-' && c != '*' && c != '/')
