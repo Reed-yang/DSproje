@@ -63,8 +63,9 @@ token *readline()
     int w;
     token *root = NULL;
     token *tail = root; //完成初始化
+    memset(token_text, 0, sizeof(token_text));
     w = gettoken(fp);
-    if (w == -1)
+    if (w == EndOfFile)
         return NULL;
     root = (token *)malloc(sizeof(token));
     root->str = (char *)malloc(MAXLEN*sizeof(char));
@@ -72,13 +73,13 @@ token *readline()
     root->next = NULL;
     tail = root;
     /* 每识别一个单词判断单词后面是不是换行符 */
-    while ((c = fgetc(fp)) != '\n')
+    while (((c = fgetc(fp)) != '\n') && (c != EOF))
     {
         ungetc(c, fp);
+        memset(token_text, 0, sizeof(token_text));
         gettoken(fp);
         tail->next = (token *)malloc(sizeof(token));
         tail = tail->next;
-        tail = (token *)malloc(sizeof(token));
         tail->str = (char *)malloc(MAXLEN*sizeof(char));
         strcpy(tail->str, token_text);
         tail->next = NULL;
