@@ -12,14 +12,14 @@ extern char token_text[MAXLEN];//存放自身单词值
 //extern char string_num[20];
 extern int cnt_lines;
 int w,type;//全局变量，存放当前读入的单词种类编码
-bool mistake = false /* 全局，出错为true */, in_recycle = false /* 在循环体内时为true */;
+bool mistake/* 全局，出错为true */, in_recycle = false /* 在循环体内时为true */, isVoid /* 函数原型的返回类型为void时为true */;
 extern FILE* fp;
 VNL head;//变量名链表根节点，head为空
+FuncL func_head; // 函数定义链表结点，func_head为空
 
 /* 生成一棵语法树，根指针指向一个外部定义序列的结点 */
 AST* program()
 {
-    printf("Enter program!\n");
     readtoken();
     AST *p = ExtDefList();
     if( p ){
@@ -209,6 +209,15 @@ AST* FuncDef()
 {
     if(mistake)
         return NULL;
+    // 生成FuncL
+    FuncL* nowfunc = &func_head;
+    while (nowfunc->next)
+        nowfunc = nowfunc->next;
+     // 新建FuncL
+    nowfunc->next = (FuncL*)malloc(sizeof(FuncL));
+    nowfunc = nowfunc->next;
+    memset(nowfunc, 0, sizeof(nowfunc));
+    
     // 生成函数定义节点
     AST *func_def = (AST*)malloc(sizeof(AST));
     func_def->data.data = NULL;
@@ -235,10 +244,12 @@ AST* FuncDef()
     }if(type==SHORT){
         strcpy(func_returntype->data.data, "short");
     }if(type==VOID){
-        printf("第%d行出现错误\n",cnt_lines);
-        printf("错误：函数缺少返回值\n");
-        return NULL;
+        strcpy(func_returntype->data.data, "void");
+        isVoid = true;
     }
+
+    strcpy(nowfunc->return_type, func_returntype->data.data); // 记入nowfunc中
+
     // 函数名节点
     AST* func_name = (AST*)malloc(sizeof(AST));
     func_name->l = NULL;
@@ -248,6 +259,8 @@ AST* FuncDef()
     // 此前应已经先读取了函数名
     strcpy(func_name->data.data, token_text);
     add2VNL(func_name->data.data);
+
+    strcpy(nowfunc->name, func_name->data.data);
 
     func_def->r = func_name;
     func_name->l = FormParaList();//func_name左子树是形参序列
@@ -269,6 +282,7 @@ AST* FuncDef()
         printf("错误：函数定义处出错\n");
         return NULL;
     }
+    isVoid = false;
     return func_def;
 }
 
@@ -283,7 +297,6 @@ void readtoken()
     }
 }
 
-
 /* 形式参数序列 */
 AST* FormParaList()
 {
@@ -297,9 +310,7 @@ AST* FormParaList()
     }
     if (w == COMMA)
     {// 递归调用时若是COMMA可以继续读取下一参数
-        w = gettoken(fp);
-        while (w == ANNO || w == INCLUDE||w==MACRO)
-            w = gettoken(fp);
+        readtoken();
     }
     AST* form_para_list = (AST*)malloc(sizeof(AST));
     form_para_list->data.data = NULL;
@@ -342,6 +353,7 @@ AST* FormParaDef()
     para_type->type = FUNCFORMALPARATYPE;
     para_type->data.type = type;
     para_type->data.data = (char*)malloc(MAXLEN*sizeof(char));
+
     if(type==INT){
         strcpy(para_type->data.data, "int");
     }if(type==DOUBLE){
@@ -365,6 +377,12 @@ AST* FormParaDef()
         mistake = true;
         return NULL;
     }
+    // 当前函数参数数+1
+    FuncL* nowfunc = &func_head;
+    while (nowfunc->next)
+        nowfunc = nowfunc->next;
+    nowfunc->para++;
+
     // 生成形参名节点
     AST *para_name = (AST*)malloc(sizeof(AST));
     para_name->l = NULL;
@@ -399,8 +417,11 @@ AST* ComStatement()
     if(w == RB /* || w == EndOfFile */)
         return com_statement;
     else{
-        mistake = true;
-        printf("错误：复合语句语法出错，没有“}”\n");
+        if(mistake == false)
+        {
+            printf("错误：复合语句语法出错，没有“}”\n");
+            mistake = true;
+        }
         return NULL;
     }
 }
@@ -731,6 +752,12 @@ AST* Statement()
         state->r = NULL;
         readtoken();
         state->r = Expression(SEMI);
+        if((isVoid == true) && (state->r != NULL)){
+            printf("第%d行出现错误\n",cnt_lines);
+            printf("错误：return类型与函数定义矛盾！\n");
+            mistake = true;
+            return NULL;
+        }
         return state;
     }
     case BREAK:{
@@ -771,10 +798,99 @@ AST* Statement()
         state->type = CONTINUESTATEMENT;
         return state;
     }
+    case IDENT:{
+        char *id_name = (char*)malloc(MAXLEN*sizeof(char));
+        strcpy(id_name, token_text);
+        readtoken();
+        if(w == LP){
+            // IDENT不是函数名，生成FUNCCALL
+            FuncL* call = &func_head;
+            while (call->next)
+            {
+                call = call->next;
+                if(strcmp(call->name, id_name) == 0)
+                    break;
+            }
+            if(strcmp(call->name, id_name)){
+                printf("第%d行出现错误\n",cnt_lines);
+                printf("错误：所调用的函数未定义！\n");
+                mistake = true;
+                return NULL;
+            }else{
+                int para_cnt = 0;
+                AST* funcparalist = (AST*)malloc(sizeof(AST));
+                state->r = funcparalist;
+                funcparalist->l = NULL;
+                funcparalist->r = NULL;
+                funcparalist->type = FUNPARALIST;
+                readtoken();
+                while ((w != RP) && (mistake == false))
+                {
+                    char temp[MAXLEN];
+                    memset(temp, 0, sizeof(temp));
+                    strcat(temp, token_text);
+                    do{
+                        readtoken();
+                        strcat(temp, token_text);
+                    }while(w != COMMA && w != RP);
+                    if(w == COMMA){
+                        para_cnt++;
+                        strcpy(token_text, temp);
+                        returntoken(fp);
+                        readtoken();
+                        funcparalist->l = Expression(COMMA);
+                        readtoken();
+                        funcparalist->r = (AST*)malloc(sizeof(AST));
+                        funcparalist = funcparalist->r;
+                        funcparalist->l = NULL;
+                        funcparalist->r = NULL;
+                        funcparalist->type = FUNPARALIST;
+                    }
+                    if(w == RP){
+                        para_cnt++;
+                        strcpy(token_text, temp);
+                        returntoken(fp);
+                        readtoken();
+                        funcparalist->l = Expression(RP);
+                        funcparalist->r = NULL;
+                    }
+                }
+                if(para_cnt != call->para){
+                    printf("第%d行出现错误\n", cnt_lines);
+                    printf("错误：函数调用参数与定义不符\n");
+                    mistake = true;
+                    return NULL;
+                }
+                if(state->r->l == NULL){
+                    strcpy(state->r->data.data, "无");
+                } // 所调用的函数无需传参
+                readtoken();
+                if(mistake)
+                    return NULL;
+                if (w != SEMI)
+                {
+                    printf("第%d行出现错误\n", cnt_lines);
+                    printf("错误：函数调用语句缺少分号\n");
+                    mistake = true;
+                    return NULL;
+                }
+                state->type = FUNCCALLSTATEMENT;
+                return state;
+            }
+            
+            // 生成函数调用结点，左结点为返回值结点，右结点为传入函数的参数
+            // 函数可能需传入多个参数
+        }else{
+            // IDENT不是函数名，调用表达式
+            returntoken(fp);
+            w = IDENT;
+            strcpy(token_text, id_name);
+            Expression(SEMI);
+        }
+    }
     case INT_CONST:
     case FLOAT_CONST:
     case CHAR_CONST:
-    case IDENT:
     case ARRAY:
         return Expression(SEMI);
     }
@@ -811,6 +927,14 @@ AST* Expression(int end_sign)
         }
         if(w >= IDENT && w <= STRING_CONST) // w是标识符或常数等操作数时
         {
+            if(w == IDENT){
+                if(check_var_exist() == false){
+                    printf("第%d行出现错误\n",cnt_lines);
+                    printf("错误：所访问的标识符未定义\n");
+                    mistake = true;
+                    return NULL;
+                }
+            }
             p = (AST*)malloc(sizeof(AST));
             p->data.data = (char*)malloc(MAXLEN*sizeof(char));
             strcpy(p->data.data, token_text);
@@ -1409,8 +1533,30 @@ void showType(int type)
         case 47:
             printf("复合语句\n");
             break;
+        case 48:
+            printf("函数调用语句\n");
+            break;
+        case 49:
+            printf("函数返回类型\n");
+            break;
+        case 50:
+            printf("函数传参序列\n");
+            break;
     }
 }
 
+
+/* 检查所使用的标识符是否已经定义 */
+bool check_var_exist()
+{
+    VNL *p = head.next;
+    while(p){
+        if( strcmp(p->variable, token_text) == 0 )
+            return true;
+        else
+            p = p->next;
+    }
+    return false; // 所查询的标识符token_text未在VNL中定义
+}
 
 

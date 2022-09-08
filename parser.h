@@ -50,6 +50,9 @@ typedef enum syntax_type{
     ARRAYNAME,//数组名45
     ARRAYSIZE,//数组大小
     COMSTATE,// 复合语句结点
+    FUNCCALLSTATEMENT, // 函数调用语句
+    FUNRETURN, // 函数返回类型
+    FUNPARALIST, // 函数传入参数序列结点
 }syntax_type;
 
 /* 二叉树法构造的抽象语法树，左子右弟 */
@@ -68,6 +71,13 @@ typedef struct VNL{
     char variable[MAXLEN];
     struct VNL *next;
 }VNL;
+
+typedef struct FuncL{
+    char name[MAXLEN];
+    char return_type[MAXLEN]; // 仅在定义时的函数体内检查return_type
+    int para;
+    struct FuncL *next;
+}FuncL;
 
 AST* program();
 AST* ExtDefList();
@@ -90,6 +100,7 @@ int free_all(AST* root);
 void syntax_analyse();
 void PreorderTranverse(AST* root,int depth);
 void showType(int type);
+bool check_var_exist();
 
 
 
